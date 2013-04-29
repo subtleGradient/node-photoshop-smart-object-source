@@ -1,0 +1,27 @@
+{
+  "name": "photoshop-smart-object-source",
+  "description": "Download and place an image url into Photoshop, saving the original source url into the layer metadata. Uses node-photoshop.",
+  "version": "0.1.0",
+
+  "repository": {
+    "url": "git://github.com/subtleGradient/node-photoshop-smart-object-source.git"
+  },
+  
+  "main": "index.js",
+  "scripts": {
+    "test": "tap test.js"
+  },
+  
+  "dependencies": [
+    "photoshop",
+    "request",
+    "streamify"
+  ],
+  "devDependencies": {
+    "tap": "~0.2"
+  },
+
+  "author": "Thomas Aylott <oblivious@subtlegradient.com> (http://subtlegradient.com)",
+  "copyright": "2013 Facebook",
+  "license": "MIT"
+}
