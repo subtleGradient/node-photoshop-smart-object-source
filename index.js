@@ -1,32 +1,39 @@
 exports = module.exports = render
 
 var photoshop = require('photoshop')
-var streamify = require('streamify')
+var Readable = require('readable-stream').Readable
 var url = require('url')
 var fs = require('fs')
 var request = require('request')
 
 function render(config){
-  if (!config.uri) throw Error('file not found');
+  var stream = new Readable({objectMode:true})
   
-  var placeholder = streamify()
+  function _error(error){
+    stream.emit('error', error);
+    stream.push(null)
+  }
   
-  downloadImage(config.uri, function(error, _path){
-    if (error) return placeholder.emit('error', error);
-    photoshop.invoke(jsx_placeSmartObject, [_path, config.uri, config.name || config.uri], function(error, result){
-      if (error) return placeholder.emit('error', error);
-      placeholder.emit('data', 'true')
-      placeholder.emit('end')
+  stream._read = function(size){
+    stream._read = function(){}
+    if (!(config && config.uri)) return _error(Error('bad uri'));
+    
+    downloadImage(config.uri, function(error, _path){
+      if (error) return _error(error);
+      photoshop.invoke(jsx_placeSmartObject, [_path, config.uri, config.name || config.uri], function(error, layerRef){
+        if (error) return _error(error);
+        stream.push(layerRef.identifier.toString())
+        stream.push(null)
+      })
     })
-  })
+  }
   
-  return placeholder
+  return stream
 }
 
 var path = require('path')
 
 function downloadImage(_url, callback){
-  console.log('downloadImage', _url)
   request.head(_url, function(error, response, body){
     if (error) return callback(error);
     
@@ -35,7 +42,6 @@ function downloadImage(_url, callback){
     if (!ext) ext = 'png';
     
     var _path = process.env.TMPDIR + '/TemporaryItems/' + encodeURIComponent(_url) + '.' + ext
-    console.log('_path', _path)
     
     var stream = request(_url)
     stream.pipe(fs.createWriteStream(_path))
@@ -52,6 +58,7 @@ function jsx_placeSmartObject(sourcePath, sourceURI, layerName){
   PSFakeDOM.setLayer_source(layerRef, sourcePath)
   PSFakeDOM.setLayer_sourceMeta(layerRef, sourceURI)
   app.activeDocument.activeLayer.name = layerName
+  return layerRef
 }
 
 if (!module.parent) require('./test');
