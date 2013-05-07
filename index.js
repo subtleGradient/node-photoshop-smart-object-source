@@ -16,11 +16,11 @@ function render(config){
   
   stream._read = function(size){
     stream._read = function(){}
-    if (!(config && config.uri)) return _error(Error('bad uri'));
+    if (!(config && config.uri)) return _error(Error('missing uri GET parameter'));
     
     downloadImage(config.uri, function(error, _path){
       if (error) return _error(error);
-      photoshop.invoke(jsx_placeSmartObject, [_path, config.uri, config.name || config.uri], function(error, layerRef){
+      photoshop.includeFakeDOM().invoke(jsx_placeSmartObject, [_path, config.uri, config.name || config.uri], function(error, layerRef){
         if (error) return _error(error);
         stream.push(layerRef.identifier.toString())
         stream.push(null)
@@ -51,14 +51,16 @@ function downloadImage(_url, callback){
 }
 
 function jsx_placeSmartObject(sourcePath, sourceURI, layerName){
-  if (app.documents.length === 0) PSFakeDOM.makeDocument()
-  PSFakeDOM.makeLayer()
-  PSFakeDOM.newPlacedLayer()
-  var layerRef = PSFakeDOM.layerRefForActiveLayer()
-  PSFakeDOM.setLayer_source(layerRef, sourcePath)
-  PSFakeDOM.setLayer_sourceMeta(layerRef, sourceURI)
-  app.activeDocument.activeLayer.name = layerName
-  return layerRef
+  if (app.documents.length === 0) PSFakeDOM.makeDocument();
+  return FakeDocument.$0().doWriteTransaction(function(doc){
+    PSFakeDOM.makeLayer()
+    PSFakeDOM.newPlacedLayer()
+    var layerRef = PSFakeDOM.layerRefForActiveLayer()
+    PSFakeDOM.setLayer_source(layerRef, sourcePath)
+    PSFakeDOM.setLayer_sourceMeta(layerRef, sourceURI)
+    app.activeDocument.activeLayer.name = layerName
+    return layerRef
+  }, layerName || 'Insert Layer')
 }
 
 if (!module.parent) require('./test');
